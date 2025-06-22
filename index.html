@@ -1,23 +1,141 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+    <title>Draft Simulator</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #terminal {
+        background: #fffefa;
+        color: #010052;
+        padding: 20px;
+        font-family: monospace;
+        height: 500px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+      }
+      input {
+        padding: 8px;
+        width: 300px;
+      }
+    </style>
   </head>
   <body>
-    Pyodide test page <br />
-    Open your browser console to see Pyodide output
-    <script type="text/javascript">
-      async function main() {
-        let pyodide = await loadPyodide();
-        console.log(
-          pyodide.runPython(`
-            import sys
-            sys.version
-        `)
+    <h1>Fantasy Football Draft Simulator</h1>
+    <button onclick="startDraft()">Start Draft</button>
+    <div id="terminal"></div>
+    <input
+      type="text"
+      id="userInput"
+      placeholder="Enter your response..."
+      style="display: none"
+    />
+    <button onclick="sendInput()" style="display: none" id="sendBtn">
+      Send
+    </button>
+
+    <script>
+      let pyodide;
+      let pythonReady = false;
+
+      async function loadPyodide() {
+        pyodide = await loadPyodide();
+        await pyodide.loadPackage("pandas");
+
+        // Load your CSV
+        const csvResponse = await fetch("big_board.csv");
+        const csvText = await csvResponse.text();
+        pyodide.FS.writeFile("big_board.csv", csvText);
+
+        // Load your Python file
+        const pythonResponse = await fetch("DraftSimulator.py");
+        const pythonCode = await pythonResponse.text();
+
+        // Replace input() calls with custom input handler
+        const modifiedCode = pythonCode.replace(
+          /input\("([^"]+)"\)/g,
+          'await js_input("$1")'
         );
-        pyodide.runPython("print(1 + 2)");
+
+        pyodide.runPython(`
+import asyncio
+from js import prompt_user, display_output
+
+async def js_input(prompt_text):
+    return await prompt_user(prompt_text)
+
+print = lambda *args: display_output(' '.join(str(arg) for arg in args))
+
+${modifiedCode}
+            `);
+
+        pythonReady = true;
       }
-      main();
+
+      function display_output(text) {
+        document.getElementById("terminal").textContent += text + "\n";
+        document.getElementById("terminal").scrollTop =
+          document.getElementById("terminal").scrollHeight;
+      }
+
+      function prompt_user(prompt_text) {
+        return new Promise((resolve) => {
+          display_output(prompt_text);
+          document.getElementById("userInput").style.display = "inline";
+          document.getElementById("sendBtn").style.display = "inline";
+          document.getElementById("userInput").focus();
+
+          window.currentResolve = resolve;
+        });
+      }
+
+      function sendInput() {
+        const input = document.getElementById("userInput").value;
+        document.getElementById("userInput").value = "";
+        document.getElementById("userInput").style.display = "none";
+        document.getElementById("sendBtn").style.display = "none";
+
+        display_output("> " + input);
+        window.currentResolve(input);
+      }
+
+      document
+        .getElementById("userInput")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            sendInput();
+          }
+        });
+
+      async function startDraft() {
+        if (!pythonReady) {
+          display_output("Loading Python environment...");
+          await loadPyodide();
+        }
+
+        display_output("Starting draft...");
+        pyodide.runPython(`
+import asyncio
+asyncio.create_task(sim.draft())
+            `);
+      }
+
+      // Make functions available to Python
+      window.prompt_user = prompt_user;
+      window.display_output = display_output;
     </script>
   </body>
 </html>
