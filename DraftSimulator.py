@@ -93,39 +93,88 @@ class DraftSimulator:
             top_player = sorted_players.iloc[current_id]
             top_pos = top_player["position_group"]
             
-            if top_pos == "TE":
-                if(self.TE_drafted == 0):
+            # EARLY ROUND LOGIC (Rounds 1-3): Take best available value regardless of position balance
+            if self.current_round <= 3:
+                return top_player["player_display_name"]
+            
+            # LATE ROUND LOGIC (Round 10+): Prioritize filling required starting spots
+            if self.current_round >= 10:
+                # Calculate what we still need for starting lineup
+                qb_needed = max(0, self.QB_slots - self.QB_drafted)
+                rb_needed = max(0, self.RB_slots - self.RB_drafted)
+                wr_needed = max(0, self.WR_slots - self.WR_drafted)
+                te_needed = max(0, self.TE_slots - self.TE_drafted)
+                
+                # Calculate flex needs (RB/WR/TE eligible)
+                flex_positions_drafted = self.RB_drafted + self.WR_drafted + self.TE_drafted
+                total_flex_positions_needed = self.RB_slots + self.WR_slots + self.TE_slots + self.flex
+                flex_shortfall = max(0, total_flex_positions_needed - flex_positions_drafted)
+                
+                # Prioritize positions we desperately need
+                if top_pos == "QB" and qb_needed > 0:
+                    return top_player["player_display_name"]
+                elif top_pos == "RB" and (rb_needed > 0 or flex_shortfall > 0):
+                    return top_player["player_display_name"]
+                elif top_pos == "WR" and (wr_needed > 0 or flex_shortfall > 0):
+                    return top_player["player_display_name"]
+                elif top_pos == "TE" and (te_needed > 0 or flex_shortfall > 0):
                     return top_player["player_display_name"]
                 else:
-                    if(self.RB_drafted >= self.TE_drafted and self.WR_drafted >= self.TE_drafted and self.QB_drafted >= self.TE_drafted):
-                        return top_player["player_display_name"]
-                    else:
-                        current_id+=1
-            elif top_pos == "RB":
-                if(self.RB_drafted == 0):
+                    current_id += 1
+                    continue
+            
+            # MIDDLE ROUND LOGIC (Rounds 4-9): Enhanced balanced approach with flex awareness
+            # Treat RB/WR/TE as a combined flex-eligible pool
+            flex_eligible_drafted = self.RB_drafted + self.WR_drafted + self.TE_drafted
+            
+            if top_pos == "QB":
+                if self.QB_drafted == 0:
                     return top_player["player_display_name"]
                 else:
-                    if(self.TE_drafted >= self.RB_drafted and self.WR_drafted >= self.RB_drafted and self.QB_drafted >= self.RB_drafted):
+                    # Only take additional QB if we're not behind in other positions
+                    if (flex_eligible_drafted >= self.QB_drafted):
                         return top_player["player_display_name"]
                     else:
-                        current_id+=1
-            elif top_pos == "WR":
-                if(self.WR_drafted == 0):
-                    return top_player["player_display_name"]
-                else:
-                    if(self.TE_drafted >= self.WR_drafted and self.RB_drafted >= self.WR_drafted and self.QB_drafted >= self.WR_drafted):
+                        current_id += 1
+            
+            elif top_pos in ["RB", "WR", "TE"]:
+                # For flex-eligible positions, use more nuanced logic
+                if top_pos == "RB":
+                    if self.RB_drafted == 0:
                         return top_player["player_display_name"]
                     else:
-                        current_id+=1
-            elif top_pos == "QB":
-                if(self.QB_drafted == 0):
-                    return top_player["player_display_name"]
-                else:
-                    if(self.TE_drafted >= self.QB_drafted and self.RB_drafted >= self.QB_drafted and self.WR_drafted >= self.QB_drafted):
+                        # Take if other non-flex positions are caught up AND we're not way ahead in RBs
+                        if (self.QB_drafted >= self.RB_drafted and 
+                            self.RB_drafted < self.RB_slots + 1):  # Allow slight RB preference
+                            return top_player["player_display_name"]
+                        else:
+                            current_id += 1
+                
+                elif top_pos == "WR":
+                    if self.WR_drafted == 0:
                         return top_player["player_display_name"]
                     else:
-                        current_id+=1
+                        # Take if other positions are caught up AND we're not way ahead in WRs
+                        if (self.QB_drafted >= self.WR_drafted and 
+                            self.WR_drafted < self.WR_slots + 1):  # Allow slight WR preference
+                            return top_player["player_display_name"]
+                        else:
+                            current_id += 1
+                
+                elif top_pos == "TE":
+                    if self.TE_drafted == 0:
+                        return top_player["player_display_name"]
+                    else:
+                        # Be more restrictive with additional TEs since we only start 1
+                        if (self.QB_drafted >= self.TE_drafted and 
+                            self.RB_drafted >= self.TE_drafted and 
+                            self.WR_drafted >= self.TE_drafted and
+                            self.TE_drafted < self.TE_slots + 1):
+                            return top_player["player_display_name"]
+                        else:
+                            current_id += 1
             else:
+                # Non-offensive positions, skip
                 current_id += 1
 
     def draft(self):
