@@ -215,4 +215,5 @@ class DraftSimulator:
         
     
 
-sim = DraftSimulator("big_board.csv", 14)
+sim = DraftSimulator("big_board.csv",10,  14)
+sim.draft()
