@@ -1,61 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
-    <style>
-      body {
-        font-family: Arial;
-        max-width: 700px;
-        margin: 50px auto;
-        padding: 20px;
-      }
-      .formula {
-        text-align: center;
-        margin: 30px 0;
-        font-size: 1.4em;
-      }
-      .def {
-        background: #f5f5f5;
-        padding: 15px;
-        margin: 20px 0;
-        border-left: 3px solid #007bff;
-      }
-      h2 {
-        color: #333;
-        margin-top: 40px;
-      }
-    </style>
+    <meta charset="UTF-8" />
+    <title>Kiran Roye</title>
   </head>
   <body>
-    <h1>Position Importance Formula</h1>
-
-    <div class="def">
-      <strong>Variable Definitions:</strong><br />
-      $p$ = position (QB, WR, RB, TE)<br />
-      $\alpha(p)$ = PAR value for position p<br />
-      $\delta(p)$ = dropoff for position p<br />
-      $\sigma(p)$ = scarcity ratio for position p<br />
-      $\epsilon_{10}(p)$ = elite 10% level for position p<br />
-      $\epsilon_{20}(p)$ = elite 20% level for position p<br />
-      $\phi(p)$ = final importance score for position p
-    </div>
-
-    <h2>Dropoff Function</h2>
-    <div class="formula">$\delta(p) = \epsilon_{10}(p) - \epsilon_{20}(p)$</div>
-
-    <h2>Raw Importance Score</h2>
-    <div class="formula">
-      $\psi(p) = \frac{\alpha(p) + \delta(p)}{2\sigma(p)}$
-    </div>
-
-    <h2>Final Normalized Importance</h2>
-    <div class="formula">$\phi(p) = \frac{\psi(p)}{\min_{p'} \psi(p')}$</div>
-
-    <h2>Complete Formula (Expanded)</h2>
-    <div class="formula">
-      $\phi(p) = \frac{\frac{\alpha(p) + \epsilon_{10}(p) -
-      \epsilon_{20}(p)}{2\sigma(p)}}{\min_{p'} \left(\frac{\alpha(p') +
-      \epsilon_{10}(p') - \epsilon_{20}(p')}{2\sigma(p')}\right)}$
-    </div>
+    <h1>Hello World</h1>
+    <p>I'm hosted with GitHub Pages.</p>
   </body>
 </html>
